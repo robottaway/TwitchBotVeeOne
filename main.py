@@ -55,7 +55,7 @@ async def processs_custom_events(conn_closed, queuebus):
     print('transport closed returning')
 
 async def asyncmode():
-    with open('creds.yaml') as file:
+    with open('config.yaml') as file:
         creds = yaml.safe_load(file)
         token = creds['token']
     # for now just a default old security context for SSL
