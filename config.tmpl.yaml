@@ -1,0 +1,4 @@
+# you can configure the bot using these parameters
+token: <twitch token>
+workers: <number of concurrent workers to process events>
+nickname: <channel nickname>

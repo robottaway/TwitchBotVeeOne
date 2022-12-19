@@ -1,86 +1,73 @@
 # This is a sample Python script.
-import socket
 import ssl
 import asyncio
-import time
 import yaml
+from asyncio.exceptions import CancelledError
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
 # https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=nr67zepkjphqf1h5af73wvmhdwebxj&redirect_uri=http://localhost&scope=chat%3Aread+chat%3Aedit
 
-nick = 'gunstrucksbbq'
+nickname = 'gunstrucksbbq'
 token = ''
 hostname = 'irc.chat.twitch.tv'
+workercount = 2
 
-def wrapUtf8(s):
-    return bytes(s, encoding='utf-8')
-
-def generatePRIVMSG():
-    return wrapUtf8(f'PRIVMSG #gunstrucksbbq :hgodLiltilt\n')
-
-def printD(data):
-    for v in data.split(r'\r\n'):
-        print(f'{v}')
-
-def syncmode():
-    with open('creds.yaml') as file:
-        creds = yaml.safe_load(file)
-        token = creds['token']
-
-    context = ssl.create_default_context()
-    with socket.create_connection((hostname, 6697)) as sock:
-        with context.wrap_socket(sock, server_hostname=hostname) as ssock:
-            print(ssock.version())
-            ssock.sendall(wrapUtf8(f'PASS oauth:{token}\n'))
-            ssock.sendall(b'NICK gunstrucksbbq\n')
-            printD(str(ssock.recv(1024)))
-
-            ssock.sendall(b'JOIN #gunstrucksbbq\n')
-            printD(str(ssock.recv(1024)))
-
-            for idx in range(2):
-                ssock.sendall(generatePRIVMSG())
-                time.sleep(10)
-
-            while True:
-                printD(str(ssock.recv(1024)))
-
-async def processs_custom_events(conn_closed, queuebus):
-    while not conn_closed():
-        entry = await queuebus.get()
-        print(entry)
-        queuebus.task_done()
-    print('transport closed returning')
+async def processs_custom_events(queuebus):
+    while True:
+        try:
+            entry = await queuebus.get()
+            print(entry)
+            queuebus.task_done()
+        except (CancelledError, KeyboardInterrupt):
+            print("canceled task!")
+            break
 
 async def asyncmode():
     with open('config.yaml') as file:
         creds = yaml.safe_load(file)
         token = creds['token']
-    # for now just a default old security context for SSL
+        nickname = creds['nickname']
+        workercount = creds['workercount']
+
+    # create the items required to setup proto+transport
     context = ssl.create_default_context()
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
+    on_con_lost = loop.create_future()
+
     # create connection and using Twitch protocol will propagate events in given queue
     queuebus = asyncio.Queue()
-    transport, protocol = await loop.create_connection(lambda: TwitchBotClient(queuebus, nick, token), hostname, 6697, ssl=context)
-    # our process w/ custom handlers for non-protocol messages
-    await processs_custom_events(transport.is_closing, queuebus)
-    # try:
-    #     print('waiting lost connection')
-    #     await on_lost_conn
-    # finally:
-    #     transport.close()
+    transport, protocol = await loop.create_connection(lambda: TwitchBotClient(on_con_lost, queuebus, nickname, token), hostname, 6697, ssl=context)
+
+    # our process w/ custom workers for non-protocol messages
+    workers = []
+    for i in range(workercount):
+        worker = asyncio.create_task(processs_custom_events(queuebus))
+        workers.append(worker)
+
+    try:
+        print('waiting on a broken connection...')
+        await on_con_lost
+    except KeyboardInterrupt:
+        pass
+    finally:
+        for worker in workers:
+            worker.cancel()
+        await asyncio.gather(*workers, return_exceptions=True)
+        transport.close()
 
 class TwitchBotClient(asyncio.Protocol):
-    def __init__(self, queuebus, nick, token):
+    def __init__(self, on_conn_lost, queuebus, nickname, token):
+        self.on_conn_lost = on_conn_lost
         self.queuebus = queuebus
-        self.nick = nick
+        self.nickname = nickname
         self.token = token
+        self.transport = None
 
     def _auth(self):
         self.transport.write(f'PASS oauth:{self.token}\n'.encode())
-        self.transport.write(f'NICK {self.nick}\n'.encode())
+        self.transport.write(f'NICK {self.nickname}\n'.encode())
         self.transport.write(f'JOIN #gunstrucksbbq\n'.encode())
 
     def connection_made(self, transport):
@@ -99,11 +86,14 @@ class TwitchBotClient(asyncio.Protocol):
             self.queuebus.put_nowait(message)
 
     def connection_lost(self, exc):
-        self.transport.close()
         print('connection lost to twitch irc')
+        self.on_conn_lost.set_result(True)
 
 if __name__ == '__main__':
-    asyncio.run(asyncmode())
+    try:
+        asyncio.run(asyncmode())
+    except KeyboardInterrupt:
+        pass
 
 
 
