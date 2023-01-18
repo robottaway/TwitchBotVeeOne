@@ -25,7 +25,7 @@ async def processs_custom_events(queuebus):
             break
 
 async def asyncmode():
-    with open('config.yaml') as file:
+    with open('../config.yaml') as file:
         creds = yaml.safe_load(file)
         token = creds['token']
         nickname = creds['nickname']
