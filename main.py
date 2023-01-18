@@ -81,7 +81,7 @@ class TwitchBotClient(asyncio.Protocol):
         # handle PING/PONG keep alives
         if message == 'PING :tmi.twitch.tv':
             print('got a PING, so we shall PONG!')
-            #self.transport.write('PONG :tmi.twitch.tv\n'.encode())
+            self.transport.write('PONG :tmi.twitch.tv\n'.encode())
         else:
             self.queuebus.put_nowait(message)
 
@@ -91,7 +91,9 @@ class TwitchBotClient(asyncio.Protocol):
 
 if __name__ == '__main__':
     try:
+        # this solves a nuisence with RuntimeError being thrown when the app is stopped
         asyncio.run(asyncmode())
+        print('Bot finished at ...')
     except KeyboardInterrupt:
         pass
 
