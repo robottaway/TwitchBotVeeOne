@@ -10,6 +10,6 @@ setup(
     author_email='noone@none.net',
     description='Twitch chat bot',
     entry_points={
-        'console_scripts': ['twitchbotveeone=twitchbotveeone.command_line:cli'],
+        'console_scripts': ['twitchbotveeone=twitchbotveeone.command_line:main'],
     },
 )

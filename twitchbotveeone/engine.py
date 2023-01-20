@@ -9,7 +9,7 @@ from asyncio.exceptions import CancelledError
 
 # https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=nr67zepkjphqf1h5af73wvmhdwebxj&redirect_uri=http://localhost&scope=chat%3Aread+chat%3Aedit
 
-nickname = 'gunstrucksbbq'
+nickname = ''
 token = ''
 hostname = 'irc.chat.twitch.tv'
 workercount = 2
@@ -18,6 +18,7 @@ async def processs_custom_events(queuebus):
     while True:
         try:
             entry = await queuebus.get()
+            # todo is parse the event and then take any action
             print(entry)
             queuebus.task_done()
         except (CancelledError, KeyboardInterrupt):
@@ -25,7 +26,7 @@ async def processs_custom_events(queuebus):
             break
 
 async def asyncmode():
-    with open('../config.yaml') as file:
+    with open('config.yaml') as file:
         creds = yaml.safe_load(file)
         token = creds['token']
         nickname = creds['nickname']
@@ -89,7 +90,7 @@ class TwitchBotClient(asyncio.Protocol):
         print('connection lost to twitch irc')
         self.on_conn_lost.set_result(True)
 
-if __name__ == '__main__':
+def startup():
     try:
         # this solves a nuisence with RuntimeError being thrown when the app is stopped
         asyncio.run(asyncmode())
