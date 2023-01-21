@@ -2,3 +2,4 @@
 token: <twitch token>
 workers: <number of concurrent workers to process events>
 nickname: <channel nickname>
+channel: <name of your channel>
