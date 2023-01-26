@@ -3,3 +3,4 @@ setuptools~=60.2.0
 rich~=13.2.0
 rich-click~=1.6.1
 schema~=0.7.5
+coloredlogs~=15.0.1

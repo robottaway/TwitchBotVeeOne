@@ -1,6 +1,12 @@
 from schema import Schema, And, Use, Optional
 import yaml
 import os
+from rich import print
+from rich.table import Table
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 configschema = Schema({'nickname': And(str, len),
                  'token': And(str),
@@ -8,7 +14,7 @@ configschema = Schema({'nickname': And(str, len),
                  'channel': And(str, len)})
 
 
-def parseConfig(configfile):
+def parse_config(configfile):
     if not Schema(os.path.exists).validate(configfile):
         pass
 
@@ -29,4 +35,9 @@ class BotConfiguration(object):
         raise NameError
 
     def pretty_print(self):
-        pass
+        table = Table(title="Configuration")
+        table.add_column("Name", style="magenta")
+        table.add_column("Value", style="cyan")
+        for k, v in self._config.items():
+            table.add_row(k, str(v))
+        print(table)

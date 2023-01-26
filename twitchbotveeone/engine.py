@@ -1,12 +1,10 @@
-# This is a sample Python script.
 import ssl
 import asyncio
 from asyncio.exceptions import CancelledError
+import logging
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
-# https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=nr67zepkjphqf1h5af73wvmhdwebxj&redirect_uri=http://localhost&scope=chat%3Aread+chat%3Aedit
+logger = logging.getLogger(__name__)
 
 
 async def processs_custom_events(queuebus):
@@ -14,10 +12,10 @@ async def processs_custom_events(queuebus):
         try:
             entry = await queuebus.get()
             # todo is parse the event and then take any action
-            print(entry)
+            logger.debug(entry)
             queuebus.task_done()
         except (CancelledError, KeyboardInterrupt):
-            print("canceled task!")
+            logger.info("canceled task!")
             break
 
 
@@ -33,12 +31,13 @@ async def asyncmode(config):
 
     # our process w/ custom workers for non-protocol messages
     workers = []
+    logger.info(f'Spinning up {config.workercount} workers')
     for i in range(config.workercount):
         worker = asyncio.create_task(processs_custom_events(queuebus))
         workers.append(worker)
 
     try:
-        print('waiting on a broken connection...')
+        logger.info('waiting on a broken connection...')
         await on_con_lost
     except KeyboardInterrupt:
         pass
@@ -62,7 +61,7 @@ class TwitchBotClient(asyncio.Protocol):
         self.transport.write(f'JOIN #{self.config.channel}\n'.encode())
 
     def connection_made(self, transport):
-        print('connected to twitch irc')
+        logger.info('connected to twitch irc')
         self.transport = transport
         self._auth()
 
@@ -71,24 +70,20 @@ class TwitchBotClient(asyncio.Protocol):
 
         # handle PING/PONG keep alives
         if message == 'PING :tmi.twitch.tv':
-            print('got a PING, so we shall PONG!')
+            logger.info('got a PING, so we shall PONG!')
             self.transport.write('PONG :tmi.twitch.tv\n'.encode())
         else:
             self.queuebus.put_nowait(message)
 
     def connection_lost(self, exc):
-        print('connection lost to twitch irc')
+        logger.info('connection lost to twitch irc')
         self.on_conn_lost.set_result(True)
 
 
 def startup(config):
     try:
-        # this solves a nuisence with RuntimeError being thrown when the app is stopped
+        # this solves a nuisance with RuntimeError being thrown when the app is stopped
         asyncio.run(asyncmode(config))
-        print('Bot finished at ...')
+        logger.info('Bot finished at ...')
     except KeyboardInterrupt:
         pass
-
-# parse up to PRIVMSG, capture using regex, all after as rest to parse in sub regex?
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

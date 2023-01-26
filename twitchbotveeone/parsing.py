@@ -1,4 +1,4 @@
 
 
-parsePRIVMSG(val):
-    pass
+def parse_privmsg(val):
+    print(val)

@@ -48,3 +48,7 @@ Simple:
 More complex:
 * Twitch <--> Discord bridging... post Twitch messages into discord, get info on Discord
 * Game api integration... Dota2 get player stats
+
+## Getting a Token
+
+You can get a token using [this URL](https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=nr67zepkjphqf1h5af73wvmhdwebxj&redirect_uri=http://localhost&scope=chat%3Aread+chat%3Aedit) after being logged into Twitch in your browser.

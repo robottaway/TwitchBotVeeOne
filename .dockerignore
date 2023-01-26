@@ -1,0 +1,6 @@
+config*
+todos.md
+.gitignore
+dist
+build
+TwitchBot.egg-info
